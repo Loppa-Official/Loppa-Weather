@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Rounded square background -->
+  <rect x="32" y="32" width="448" height="448" rx="96" ry="96" fill="#1e293b"/>
+  
+  <!-- Cloud - smooth circles -->
+  <g fill="#60a5fa">
+    <!-- Sun behind -->
+    <circle cx="340" cy="180" r="70" opacity="0.4"/>
+    
+    <!-- Cloud made of smooth circles -->
+    <ellipse cx="256" cy="310" rx="140" ry="70"/>
+    <circle cx="170" cy="270" r="75"/>
+    <circle cx="256" cy="230" r="90"/>
+    <circle cx="340" cy="270" r="70"/>
+  </g>
+</svg>

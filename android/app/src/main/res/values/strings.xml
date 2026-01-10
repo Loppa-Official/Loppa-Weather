@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Loppa Wether</string>
+    <string name="title_activity_main">Loppa Wether</string>
+    <string name="package_name">com.loppa.wether</string>
+    <string name="custom_url_scheme">com.loppa.wether</string>
+</resources>
