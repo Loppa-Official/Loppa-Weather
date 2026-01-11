@@ -27,6 +27,8 @@ export interface DailyForecast {
   weatherCode: number;
   precipitationSum: number;
   uvIndexMax: number;
+  sunrise: Date;
+  sunset: Date;
 }
 
 export interface WeatherData {
@@ -87,7 +89,8 @@ const GEO_API_BASE = 'https://geocoding-api.open-meteo.com/v1/search';
 
 // Cache settings - 15 minutes
 const CACHE_TTL = 15 * 60 * 1000;
-const CACHE_KEY_PREFIX = 'loppa-weather-cache-';
+const CACHE_VERSION = 'v2'; // Increment to invalidate old cache
+const CACHE_KEY_PREFIX = `loppa-weather-${CACHE_VERSION}-`;
 
 interface CachedData {
   data: WeatherData;
@@ -114,7 +117,12 @@ function getFromCache(lat: number, lon: number): WeatherData | null {
 
     // Restore Date objects
     parsed.data.hourly = parsed.data.hourly.map(h => ({ ...h, time: new Date(h.time) }));
-    parsed.data.daily = parsed.data.daily.map(d => ({ ...d, date: new Date(d.date) }));
+    parsed.data.daily = parsed.data.daily.map(d => ({
+      ...d,
+      date: new Date(d.date),
+      sunrise: new Date(d.sunrise),
+      sunset: new Date(d.sunset)
+    }));
 
     console.log(`[Cache] Using cached data (${Math.round(age / 1000)}s old)`);
     return parsed.data;
@@ -164,7 +172,9 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
       'temperature_2m_max',
       'temperature_2m_min',
       'precipitation_sum',
-      'uv_index_max'
+      'uv_index_max',
+      'sunrise',
+      'sunset'
     ].join(','),
     timezone: 'auto',
     forecast_days: '10'
@@ -204,7 +214,9 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
       tempMin: Math.round(data.daily.temperature_2m_min[i]),
       weatherCode: data.daily.weather_code[i],
       precipitationSum: data.daily.precipitation_sum[i],
-      uvIndexMax: Math.round(data.daily.uv_index_max?.[i] || 0)
+      uvIndexMax: Math.round(data.daily.uv_index_max?.[i] || 0),
+      sunrise: new Date(data.daily.sunrise[i]),
+      sunset: new Date(data.daily.sunset[i])
     })),
     timezone: data.timezone
   };

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { WeatherIcon } from './components/WeatherIcon';
 import { WeatherEffects } from './components/WeatherEffects';
+// import { MetricDetailModal } from './components/MetricDetailModal';
+// import { WeatherAlerts } from './components/WeatherAlerts';
 import {
   fetchWeather,
   detectLocation,
@@ -63,6 +65,7 @@ function App() {
   const [showSearch, setShowSearch] = useState(false);
   const [settings, setSettings] = useState<Settings>(getSettings);
   const [showSettings, setShowSettings] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Report weather modal
   const [showReport, setShowReport] = useState(false);
@@ -77,6 +80,9 @@ function App() {
     }
     return temp;
   }, [settings.units]);
+
+  // Convert hPa to mmHg (standard in Russia)
+  const hPaToMmHg = (hPa: number) => Math.round(hPa * 0.75006);
 
   const updateSettings = (partial: Partial<Settings>) => {
     const newSettings = { ...settings, ...partial };
@@ -151,13 +157,20 @@ function App() {
     }, 2000);
   };
 
+  // Update current time every minute
   useEffect(() => {
-    if (searchQuery.length < 2) {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) {
       setSuggestions([]);
       return;
     }
     const timeout = setTimeout(async () => {
-      const results = await searchCities(searchQuery);
+      const results = await searchCities(trimmed);
       setSuggestions(results);
     }, 300);
     return () => clearTimeout(timeout);
@@ -199,6 +212,7 @@ function App() {
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
             </svg>
             <span>{weather?.location.name || t.loading}</span>
+            <span className="city-time">{weather ? currentTime.toLocaleTimeString(settings.language === 'en' ? 'en-US' : 'ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: weather.timezone }) : ''}</span>
           </button>
           <div className="top-actions">
             <button className="icon-btn" onClick={() => setShowReport(true)} title="Сообщить о погоде">
@@ -217,6 +231,8 @@ function App() {
 
         {/* ===== WEATHER EFFECTS (rain/snow overlay) ===== */}
         {weather && <WeatherEffects weatherCode={weather.current.weatherCode} />}
+
+        {/* Weather alerts moved to native notifications */}
 
         {/* ===== SEARCH MODAL ===== */}
         {showSearch && (
@@ -254,6 +270,8 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Metric modals removed - keeping cards simple */}
 
         {/* ===== REPORT WEATHER MODAL ===== */}
         {showReport && (
@@ -574,12 +592,39 @@ function App() {
                   <span>Давление</span>
                 </div>
                 <div className="pressure-info">
-                  <span className="pressure-value">{weather.current.pressure}</span>
-                  <span className="pressure-unit">гПа</span>
+                  <span className="pressure-value">{hPaToMmHg(weather.current.pressure)}</span>
+                  <span className="pressure-unit">мм рт.ст.</span>
                   <span className="pressure-desc">
-                    {weather.current.pressure > 1015 ? '↑ Повышенное' :
-                      weather.current.pressure < 1005 ? '↓ Пониженное' : '→ Норма'}
+                    {hPaToMmHg(weather.current.pressure) > 760 ? '↑ Повышенное' :
+                      hPaToMmHg(weather.current.pressure) < 750 ? '↓ Пониженное' : '→ Норма'}
                   </span>
+                </div>
+              </div>
+            </section>
+
+            {/* ===== SUN & MOON ===== */}
+            <section className="sun-moon-section">
+              <h3>Солнце и Луна</h3>
+              <div className="sun-moon-grid">
+                <div className="sun-moon-card">
+                  <span className="sm-icon">🌅</span>
+                  <span className="sm-label">Рассвет</span>
+                  <span className="sm-time">{weather.daily[0].sunrise.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="sun-moon-card">
+                  <span className="sm-icon">🌇</span>
+                  <span className="sm-label">Закат</span>
+                  <span className="sm-time">{weather.daily[0].sunset.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="sun-moon-card">
+                  <span className="sm-icon">☀️</span>
+                  <span className="sm-label">Световой день</span>
+                  <span className="sm-time">{Math.round((weather.daily[0].sunset.getTime() - weather.daily[0].sunrise.getTime()) / 3600000)}ч {Math.round(((weather.daily[0].sunset.getTime() - weather.daily[0].sunrise.getTime()) % 3600000) / 60000)}м</span>
+                </div>
+                <div className="sun-moon-card">
+                  <span className="sm-icon">{weather.current.isDay ? '🌞' : '🌙'}</span>
+                  <span className="sm-label">Сейчас</span>
+                  <span className="sm-time">{weather.current.isDay ? 'День' : 'Ночь'}</span>
                 </div>
               </div>
             </section>
